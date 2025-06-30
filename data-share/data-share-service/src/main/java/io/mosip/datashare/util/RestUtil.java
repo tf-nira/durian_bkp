@@ -24,6 +24,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -56,6 +57,12 @@ import io.mosip.kernel.core.util.TokenHandlerUtil;
 @Component
 public class RestUtil {
 
+	@Value("${data.share.default.resttemplate.httpclient.connections.max.per.host:20}")
+	private int maxConnectionPerRoute;
+
+	@Value("${data.share.default.resttemplate.httpclient.connections.max:100}")
+	private int totalMaxConnection;
+	
 	/** The environment. */
     @Autowired
     private Environment environment;
@@ -211,14 +218,11 @@ public class RestUtil {
 	 * @throws KeyStoreException        the key store exception
 	 */
     public RestTemplate getRestTemplate() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
-    	if (localRestTemplate == null) {
-			TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
-			SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
-					.loadTrustMaterial(null, acceptingTrustStrategy).build();
-			SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext);
-			CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(csf).build();
+    	if (localRestTemplate == null) {			
 			HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-			requestFactory.setHttpClient(httpClient);
+			HttpClientBuilder httpClientBuilder = HttpClients.custom().setMaxConnPerRoute(maxConnectionPerRoute)
+					.setMaxConnTotal(totalMaxConnection).disableCookieManagement();
+			requestFactory.setHttpClient(httpClientBuilder.build());
 			localRestTemplate = new RestTemplate(requestFactory);
 		}
 		return localRestTemplate;
