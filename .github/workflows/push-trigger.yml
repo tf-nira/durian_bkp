@@ -20,6 +20,7 @@ on:
       - develop
       - MOSIP*
       - release*
+      - tf_nira*
 
 jobs:
   build-maven-data-share:
